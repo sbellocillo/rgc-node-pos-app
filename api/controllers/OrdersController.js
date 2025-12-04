@@ -11,13 +11,16 @@ class OrdersController {
               ot.name AS order_type_name,
               s.name AS status_name,
               pm.name AS payment_method_name,
-              l.name AS location_name
+              l.name AS location_name,
+              cn.name AS card_network_name,
+              cn.code AS card_network_code
             FROM orders o
             LEFT JOIN customers c ON o.customer_id = c.id
             LEFT JOIN order_type ot ON o.order_type_id = ot.id
             LEFT JOIN status s ON o.status_id = s.id
             LEFT JOIN paymentmethod pm ON o.payment_method_id = pm.id
-            LEFT JOIN location l ON o.location_id = l.id`);
+            LEFT JOIN location l ON o.location_id = l.id
+            LEFT JOIN card_networks cn ON o.card_network_id = cn.id`);
 
             res.status(200).json({
                 success: true,
@@ -98,6 +101,7 @@ class OrdersController {
                 role_id,
                 location_id,
                 payment_method_id,
+                card_network_id,
                 created_by,
                 items // array of items [{ item_id, quantity, rate, tax_percentage, tax_amount, amount }]
             } = req.body;
@@ -107,9 +111,9 @@ class OrdersController {
                 INSERT INTO "orders" (
                   customer_id, status_id, order_type_id,
                   tax_percentage, tax_amount, total,
-                  role_id, location_id, payment_method_id, created_by
+                  role_id, location_id, payment_method_id, card_network_id, created_by
                 )
-                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
                 RETURNING id
               `;
             const orderResult = await client.query(orderInsertQuery, [
@@ -123,6 +127,7 @@ class OrdersController {
                 role_id,
                 location_id,
                 payment_method_id,
+                card_network_id,
                 created_by
             ]);
 
@@ -208,8 +213,8 @@ class OrdersController {
                     user_id, customer_name, customer_email, customer_phone,
                     status_id, order_type_id, subtotal, tax_percentage,
                     tax_amount, total_amount, payment_method_id,
-                    location_id, special_instructions
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+                    location_id, card_network_id, special_instructions
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
                 RETURNING *`,
                 [
                     orderData.user_id,
@@ -224,6 +229,7 @@ class OrdersController {
                     amounts.totalAmount,
                     orderData.payment_method_id,
                     orderData.location_id,
+                    orderData.card_network_id,
                     orderData.special_instructions
                 ]
             );
@@ -246,7 +252,7 @@ class OrdersController {
             client.release();
         }
     }
-    
+
     static async updateOrder(req, res) {
         const client = await pool.connect();
         try {
@@ -387,8 +393,8 @@ class OrdersController {
                     user_id = $1, customer_name = $2, customer_email = $3, customer_phone = $4,
                     status_id = $5, order_type_id = $6, subtotal = $7, tax_percentage = $8,
                     tax_amount = $9, total_amount = $10, payment_method_id = $11,
-                    location_id = $12, special_instructions = $13, updated_at = CURRENT_TIMESTAMP
-                WHERE order_id = $14
+                    location_id = $12, card_network_id = $13, special_instructions = $14, updated_at = CURRENT_TIMESTAMP
+                WHERE order_id = $15
                 RETURNING *`,
                 [
                     orderData.user_id,
@@ -403,6 +409,7 @@ class OrdersController {
                     amounts.totalAmount,
                     orderData.payment_method_id,
                     orderData.location_id,
+                    orderData.card_network_id,
                     orderData.special_instructions,
                     id
                 ]

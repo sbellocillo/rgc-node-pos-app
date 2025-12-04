@@ -1,5 +1,5 @@
 class Orders {
-    constructor(id, customer_id, order_date, shipping_address, billing_address, status_id, quantity, order_type_id, subtotal, tax_percentage, tax_amount, total, role_id, location_id, payment_method_id, created_at, created_by) {
+    constructor(id, customer_id, order_date, shipping_address, billing_address, status_id, quantity, order_type_id, subtotal, tax_percentage, tax_amount, total, role_id, location_id, payment_method_id, card_network_id, created_at, created_by) {
         this.id = id;
         this.customer_id = customer_id;
         this.order_date = order_date;
@@ -15,6 +15,7 @@ class Orders {
         this.role_id = role_id;
         this.location_id = location_id;
         this.payment_method_id = payment_method_id;
+        this.card_network_id = card_network_id;
         this.created_at = created_at;
         this.created_by = created_by;
     }
@@ -36,6 +37,7 @@ class Orders {
             orderData.role_id,
             orderData.location_id,
             orderData.payment_method_id,
+            orderData.card_network_id,
             orderData.created_at || new Date(),
             orderData.created_by
         );
@@ -69,6 +71,7 @@ class Orders {
             role_id: this.role_id,
             location_id: this.location_id,
             payment_method_id: this.payment_method_id,
+            card_network_id: this.card_network_id,
             created_at: this.created_at,
             created_by: this.created_by
         };

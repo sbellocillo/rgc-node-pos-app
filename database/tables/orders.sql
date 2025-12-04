@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS orders (
     role_id INTEGER REFERENCES roles(id),
     location_id INTEGER REFERENCES location(id),
     payment_method_id INTEGER REFERENCES paymentmethod(id),
+    card_network_id INTEGER REFERENCES card_networks(id),
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_by INTEGER REFERENCES users(id)

@@ -15,6 +15,7 @@ const orderTypeRoutes = require('./orderType');
 const taxConfigRoutes = require('./taxConfig');
 const itemCategoryRoutes = require('./item-categories');
 const lookupRoutes = require('./lookup');
+const cardNetworkRoutes = require('./cardNetworks');
 
 
 // Mount routes
@@ -31,6 +32,7 @@ router.use('/order-types', orderTypeRoutes);
 router.use('/tax-config', taxConfigRoutes);
 router.use('/item-categories', itemCategoryRoutes);
 router.use('/lookup', lookupRoutes);
+router.use('/card-networks', cardNetworkRoutes);
 
 
 // API root endpoint
@@ -53,6 +55,7 @@ router.get('/', (req, res) => {
             itemCategories: '/rgc/api/item-categories',
             itemTypes: '/rgc/api/item-types',
             lookup: '/rgc/api/lookup',
+            cardNetworks: '/rgc/api/card-networks',
             health: '/health'
         }
     });
