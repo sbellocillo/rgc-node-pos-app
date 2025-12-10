@@ -17,11 +17,11 @@ if (ENVIROMENT_TYPE === "production") {
     };
 } else {
     dbConfig = {
-        user: process.env.DEVEOPLPMENT_DB_USER,
-        host: process.env.DEVEOPLPMENT_DB_HOST,
-        database: process.env.DEVEOPLPMENT_DB_NAME,
-        password: process.env.DEVEOPLPMENT_DB_PASSWORD,
-        port: process.env.DEVEOPLPMENT_DB_PORT || 5432,
+        user: process.env.DEVELOPMENT_DB_USER,
+        host: process.env.DEVELOPMENT_DB_HOST,
+        database: process.env.DEVELOPMENT_DB_NAME,
+        password: process.env.DEVELOPMENT_DB_PASSWORD,
+        port: process.env.DEVELOPMENT_DB_PORT || 5432,
     };
 }
 
