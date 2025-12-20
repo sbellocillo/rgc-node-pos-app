@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS layout_pos_terminal (
 		ON UPDATE CASCADE,
 	CONSTRAINT fk_pos_location
 		FOREIGN KEY (location_id)
-		REFERENCES locations(id)
+		REFERENCES location(id)
 		ON DELETE CASCADE
 		ON UPDATE CASCADE,
 	CONSTRAINT fk_pos_layout
