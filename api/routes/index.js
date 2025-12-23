@@ -16,7 +16,10 @@ const taxConfigRoutes = require('./taxConfig');
 const itemCategoryRoutes = require('./item-categories');
 const lookupRoutes = require('./lookup');
 const cardNetworkRoutes = require('./cardNetworks');
-
+const layoutRoutes = require('./layout');
+const layoutIndices = require('./layoutIndices');
+const layoutPosTerminal = require('./layoutPosTerminal');
+const layoutTemplateRoutes = require('./layoutTemplates'); // <--- NEW: Import the new route
 
 // Mount routes
 router.use('/users', userRoutes);
@@ -33,7 +36,10 @@ router.use('/tax-config', taxConfigRoutes);
 router.use('/item-categories', itemCategoryRoutes);
 router.use('/lookup', lookupRoutes);
 router.use('/card-networks', cardNetworkRoutes);
-
+router.use('/layouts', layoutRoutes); 
+router.use('/layout-indices', layoutIndices);
+router.use('/layout-pos-terminal', layoutPosTerminal);
+router.use('/layout-templates', layoutTemplateRoutes); // <--- NEW: Mount the route
 
 // API root endpoint
 router.get('/', (req, res) => {
@@ -53,9 +59,12 @@ router.get('/', (req, res) => {
             orderTypes: '/rgc/api/order-types',
             taxConfig: '/rgc/api/tax-config',
             itemCategories: '/rgc/api/item-categories',
-            itemTypes: '/rgc/api/item-types',
             lookup: '/rgc/api/lookup',
             cardNetworks: '/rgc/api/card-networks',
+            layouts: '/rgc/api/layouts',  
+            layoutIndices: '/rgc/api/layout-indices',
+            layoutPosTerminal: '/rgc/api/layout-pos-terminal',
+            layoutTemplates: '/rgc/api/layout-templates', 
             health: '/health'
         }
     });

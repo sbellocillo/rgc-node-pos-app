@@ -1,7 +1,75 @@
 const pool = require('../config/database');
 
 // Generic controller for simple lookup tables (status, location, paymentmethod, order_type)
-class LookupController {
+// NOTE: Because createPost and createPut have hardcoded columns (house_number, etc.), 
+// this controller is currently strictly tailored for 'locations'.
+class LocationController {
+    
+    // --- UPDATED HELPER FUNCTION START ---
+    // Generates 125 rows, but uses the CORRECT item_type_id from the layouts table
+    static async generateTerminalRows(locationId) {
+        
+        // 1. Define the Standard Layout IDs you want to use
+        const DEFAULT_LAYOUT_IDS = [1, 2, 3, 4, 5]; 
+
+        try {
+            // 2. FETCH the actual item_type_id for these layouts from the database
+            // We cannot just guess '1'. We must check what the layout is assigned to.
+            const layoutQuery = `
+                SELECT id, item_type_id 
+                FROM layouts 
+                WHERE id = ANY($1::int[])
+            `;
+            const layoutResult = await pool.query(layoutQuery, [DEFAULT_LAYOUT_IDS]);
+            const layouts = layoutResult.rows;
+
+            if (layouts.length === 0) {
+                console.error("No layouts found! Make sure layouts 1-5 exist in the database.");
+                return;
+            }
+
+            const values = [];
+            const params = [];
+            let paramIndex = 1;
+
+            // 4. Loop through the FETCHED layouts (containing real item_type_ids)
+            for (const layout of layouts) {
+                
+                // Loop through 25 Grid Indices
+                for (let indexId = 1; indexId <= 25; indexId++) {
+                    
+                    params.push(
+                        indexId, 
+                        locationId, 
+                        layout.id, 
+                        null, 
+                        layout.item_type_id, // <--- NOW DYNAMIC: Uses the real type from the layout table
+                        true
+                    );
+                    
+                    values.push(`($${paramIndex}, $${paramIndex + 1}, $${paramIndex + 2}, $${paramIndex + 3}, $${paramIndex + 4}, $${paramIndex + 5})`);
+                    paramIndex += 6;
+                }
+            }
+
+            if (values.length > 0) {
+                const insertQuery = `
+                    INSERT INTO layout_pos_terminal 
+                    (layout_indices_id, location_id, layout_id, item_id, item_type_id, is_active) 
+                    VALUES ${values.join(', ')}
+                `;
+                
+                await pool.query(insertQuery, params);
+                console.log(`Successfully generated ${values.length} terminal rows for Location ${locationId}`);
+            }
+
+        } catch (error) {
+            console.error("Critical Error in generateTerminalRows:", error);
+            // We do not throw here to prevent crashing the main "Create Location" response
+        }
+    }
+    // --- UPDATED HELPER FUNCTION END ---
+
     // Get all records from a lookup table
     static createGetAll(tableName, modelClass) {
         return async (req, res) => {
@@ -31,11 +99,14 @@ class LookupController {
             try {
                 const { id } = req.params;
                 const result = await pool.query(`SELECT * FROM ${tableName} WHERE id = $1`, [id]);
+                
+                // Helper to format name (remove 's' if plural, otherwise keep)
+                const entityName = tableName.endsWith('s') ? tableName.slice(0, -1) : tableName;
 
                 if (result.rows.length === 0) {
                     return res.status(404).json({
                         success: false,
-                        message: `${tableName.slice(0, -1)} not found`
+                        message: `${entityName} not found`
                     });
                 }
 
@@ -43,13 +114,14 @@ class LookupController {
 
                 res.status(200).json({
                     success: true,
-                    message: `${tableName.slice(0, -1)} retrieved successfully`,
+                    message: `${entityName} retrieved successfully`,
                     data: data
                 });
             } catch (error) {
+                const entityName = tableName.endsWith('s') ? tableName.slice(0, -1) : tableName;
                 res.status(500).json({
                     success: false,
-                    message: `Error retrieving ${tableName.slice(0, -1)}`,
+                    message: `Error retrieving ${entityName}`,
                     error: error.message
                 });
             }
@@ -80,15 +152,29 @@ class LookupController {
 
                 const data = modelClass.create(result.rows[0]);
 
+                // --- MODIFICATION: CHECK FOR 'location' OR 'locations' ---
+                if (tableName === 'location' || tableName === 'locations') {
+                    console.log(`Auto-generating terminal rows for Location ID: ${data.id}`);
+                    try {
+                        // *** FIX APPLIED HERE: Changed LookupController to LocationController ***
+                        await LocationController.generateTerminalRows(data.id);
+                    } catch (genError) {
+                        console.error("Error generating terminal rows:", genError);
+                    }
+                }
+
+                const entityName = tableName.endsWith('s') ? tableName.slice(0, -1) : tableName;
+
                 res.status(201).json({
                     success: true,
-                    message: `${tableName.slice(0, -1)} created successfully`,
+                    message: `${entityName} created successfully`,
                     data: data
                 });
             } catch (error) {
+                const entityName = tableName.endsWith('s') ? tableName.slice(0, -1) : tableName;
                 res.status(500).json({
                     success: false,
-                    message: `Error creating ${tableName.slice(0, -1)}`,
+                    message: `Error creating ${entityName}`,
                     error: error.message
                 });
             }
@@ -99,19 +185,17 @@ class LookupController {
     static createPut(tableName, modelClass) {
         return async (req, res) => {
             try {
-                console.log("Updating record in request", req);
-                console.log("Updating record in body", req.body);
-                console.log("Updating record req.params", req.params);
                 const { id } = req.params;
                 const { name, house_number, unit_number, street_name, barangay, city_municipality, province, region, zipcode, phone, manager_id, is_active } = req.body;
 
-
                 const existingRecord = await pool.query(`SELECT * FROM ${tableName} WHERE id = $1`, [id]);
+                
+                const entityName = tableName.endsWith('s') ? tableName.slice(0, -1) : tableName;
 
                 if (existingRecord.rows.length === 0) {
                     return res.status(404).json({
                         success: false,
-                        message: `${tableName.slice(0, -1)} not found`
+                        message: `${entityName} not found`
                     });
                 }
 
@@ -135,13 +219,14 @@ class LookupController {
 
                 res.status(200).json({
                     success: true,
-                    message: `${tableName.slice(0, -1)} updated successfully`,
+                    message: `${entityName} updated successfully`,
                     data: data
                 });
             } catch (error) {
+                const entityName = tableName.endsWith('s') ? tableName.slice(0, -1) : tableName;
                 res.status(500).json({
                     success: false,
-                    message: `Error updating ${tableName.slice(0, -1)}`,
+                    message: `Error updating ${entityName}`,
                     error: error.message
                 });
             }
@@ -156,10 +241,12 @@ class LookupController {
 
                 const existingRecord = await pool.query(`SELECT * FROM ${tableName} WHERE id = $1`, [id]);
 
+                const entityName = tableName.endsWith('s') ? tableName.slice(0, -1) : tableName;
+
                 if (existingRecord.rows.length === 0) {
                     return res.status(404).json({
                         success: false,
-                        message: `${tableName.slice(0, -1)} not found`
+                        message: `${entityName} not found`
                     });
                 }
 
@@ -167,13 +254,14 @@ class LookupController {
 
                 res.status(200).json({
                     success: true,
-                    message: `${tableName.slice(0, -1)} deleted successfully`,
+                    message: `${entityName} deleted successfully`,
                     data: { id: parseInt(id) }
                 });
             } catch (error) {
+                const entityName = tableName.endsWith('s') ? tableName.slice(0, -1) : tableName;
                 res.status(500).json({
                     success: false,
-                    message: `Error deleting ${tableName.slice(0, -1)}`,
+                    message: `Error deleting ${entityName}`,
                     error: error.message
                 });
             }
@@ -181,4 +269,4 @@ class LookupController {
     }
 }
 
-module.exports = LookupController;
+module.exports = LocationController;

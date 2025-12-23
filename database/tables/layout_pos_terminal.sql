@@ -51,3 +51,5 @@ CREATE INDEX idx_pos_terminal_layout ON layout_pos_terminal(layout_id);
 CREATE INDEX idx_pos_terminal_item ON layout_pos_terminal(item_id);
 CREATE INDEX idx_pos_terminal_active ON layout_pos_terminal(is_active) WHERE is_active = true;
 CREATE INDEX idx_pos_terminal_location_layout ON layout_pos_terminal(layout_id, location_id);
+
+ALTER TABLE layout_pos_terminal ALTER COLUMN item_id DROP NOT NULL;

@@ -177,6 +177,39 @@ export const apiEndpoints = {
         update: (id, data) => api.put(`/tax-config/${id}`, data),
         delete: (id) => api.delete(`/tax-config/${id}`),
     },
+
+    // Layout Indices
+    layoutIndices: {
+        getAll: () => api.get('/layout-indices'),
+        getById: (id) => api.get(`/layout-indices/${id}`),
+        getByGridIndex: (gridIndex) => api.get(`/layout-indices/grid/${gridIndex}`),
+        getActive: () => api.get('/layout-indices/active'),
+    },
+
+    // Layouts
+    layouts: {
+        getAll: () => api.get('/layouts'),
+        getById: (id) => api.get(`/layouts/${id}`),
+        getByItemType: (itemTypeId) => api.get(`/layouts/item-type/${itemTypeId}`),
+        getDefaults: () => api.get('/layouts/defaults'),
+        create: (data) => api.post('/layouts', data),
+        update: (id, data) => api.put(`/layouts/${id}`, data),
+        delete: (id) => api.delete(`/layouts/${id}`),
+    },
+
+    // Layout Position Terminal
+    layoutPosTerminal: {
+        getAll: () => api.get('/layout-pos-terminal'),
+        getById: (id) => api.get(`/layout-pos-terminal/${id}`),
+        getByLocation: (locationId) => api.get(`/layout-pos-terminal/location/${locationId}`),
+        getByLayoutAndLocation: (layoutId, locationId) => 
+            api.get(`/layout-pos-terminal/layout/${layoutId}/location/${locationId}`),
+        create: (data) => api.post('/layout-pos-terminal', data),
+        bulkCreate: (data) => api.post('/layout-pos-terminal/bulk', data),
+        update: (id, data) => api.put(`/layout-pos-terminal/${id}`, data),
+        delete: (id) => api.delete(`/layout-pos-terminal/${id}`),
+        deleteByLocation: (locationId) => api.delete(`/layout-pos-terminal/location/${locationId}`),
+    },
 };
 
 export default api;
