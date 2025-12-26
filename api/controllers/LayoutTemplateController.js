@@ -83,7 +83,7 @@ class LayoutTemplateController {
     // Create single entry (Optional helper)
     async create(req, res) {
         try {
-            const { layout_id, layout_indices_id, default_item_id } = req.body;
+            const { layout_id, layout_indices_id, item_id } = req.body;
 
             if (!layout_id || !layout_indices_id) {
                 return res.status(400).json({
@@ -95,7 +95,7 @@ class LayoutTemplateController {
             const template = await LayoutTemplate.create({
                 layout_id,
                 layout_indices_id,
-                default_item_id
+                item_id
             });
 
             res.status(201).json({
@@ -137,6 +137,35 @@ class LayoutTemplateController {
             res.status(500).json({
                 success: false,
                 message: 'Error deleting layout template',
+                error: error.message
+            });
+        }
+    }
+
+    // Clear all items from a layout
+    async deleteByLayout(req, res) {
+        try {
+            const { layout_id } = req.params;
+
+            if (!layout_id) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Layout ID is required'
+                });
+            }
+
+            const deletedItems = await LayoutTemplate.deleteByLayoutId(layout_id);
+
+            res.json({
+                success: true,
+                message: `Layout template cleared successfully. Removed ${deletedItems.length} items`,
+                count: deletedItems.length
+            });
+        } catch (error) {
+            console.error('Error clearing layout template:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error clearing layout template',
                 error: error.message
             });
         }

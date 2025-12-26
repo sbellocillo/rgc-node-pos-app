@@ -8,64 +8,44 @@ class LocationController {
     // --- UPDATED HELPER FUNCTION START ---
     // Generates 125 rows, but uses the CORRECT item_type_id from the layouts table
     static async generateTerminalRows(locationId) {
-        
-        // 1. Define the Standard Layout IDs you want to use
-        const DEFAULT_LAYOUT_IDS = [1, 2, 3, 4, 5]; 
+
+        // 1. Default layouts when a new locations is created
+        const DEFAULT_LAYOUT_IDS = [1, 2, 3, 4, 5];
 
         try {
-            // 2. FETCH the actual item_type_id for these layouts from the database
-            // We cannot just guess '1'. We must check what the layout is assigned to.
-            const layoutQuery = `
-                SELECT id, item_type_id 
-                FROM layouts 
-                WHERE id = ANY($1::int[])
+            console.log(`Starting menu generation for Location ${locationId}...`);
+
+            // 2. "Copy" Query
+            // - Generates the 25 slots for each layout (CROSS JOIN)
+            // - Pulls the correct Item Id if it exists (LEFT JOIN layout_templates) 
+            // - Pulls the correct Item Type (from layouts)
+
+            const insertQuery = `
+                INSERT INTO layout_pos_terminal
+                (location_id, layout_id, layout_indices_id, item_id, item_type_id, is_active)
+                SELECT
+                    $1,
+                    l.id,
+                    li.id,
+                    lt.item_id,
+                    l.item_type_id,
+                    true
+                FROM layouts l
+                CROSS JOIN layout_indices li
+                LEFT JOIN layout_templates lt ON
+                    lt.layout_id = l.id AND
+                    lt.layout_indices_id = li.id
+                WHERE 
+                    l.id = ANY($2::int[])
+                    AND li.grid_index BETWEEN 1 AND 25;
             `;
-            const layoutResult = await pool.query(layoutQuery, [DEFAULT_LAYOUT_IDS]);
-            const layouts = layoutResult.rows;
 
-            if (layouts.length === 0) {
-                console.error("No layouts found! Make sure layouts 1-5 exist in the database.");
-                return;
-            }
+            const result = await pool.query(insertQuery, [locationId, DEFAULT_LAYOUT_IDS]);
 
-            const values = [];
-            const params = [];
-            let paramIndex = 1;
-
-            // 4. Loop through the FETCHED layouts (containing real item_type_ids)
-            for (const layout of layouts) {
-                
-                // Loop through 25 Grid Indices
-                for (let indexId = 1; indexId <= 25; indexId++) {
-                    
-                    params.push(
-                        indexId, 
-                        locationId, 
-                        layout.id, 
-                        null, 
-                        layout.item_type_id, // <--- NOW DYNAMIC: Uses the real type from the layout table
-                        true
-                    );
-                    
-                    values.push(`($${paramIndex}, $${paramIndex + 1}, $${paramIndex + 2}, $${paramIndex + 3}, $${paramIndex + 4}, $${paramIndex + 5})`);
-                    paramIndex += 6;
-                }
-            }
-
-            if (values.length > 0) {
-                const insertQuery = `
-                    INSERT INTO layout_pos_terminal 
-                    (layout_indices_id, location_id, layout_id, item_id, item_type_id, is_active) 
-                    VALUES ${values.join(', ')}
-                `;
-                
-                await pool.query(insertQuery, params);
-                console.log(`Successfully generated ${values.length} terminal rows for Location ${locationId}`);
-            }
+            console.log(`Successfully generated ${result.rowCount} terminal rows for Location ${locationId}`);
 
         } catch (error) {
-            console.error("Critical Error in generateTerminalRows:", error);
-            // We do not throw here to prevent crashing the main "Create Location" response
+            console.error("Critical Error in generateTerminalRows:", error)
         }
     }
     // --- UPDATED HELPER FUNCTION END ---
