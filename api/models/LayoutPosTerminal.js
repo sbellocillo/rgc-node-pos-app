@@ -50,6 +50,7 @@ class LayoutPosTerminal {
                     l.name as layout_name,
                     loc.name as location_name,
                     i.name as item_name,
+                    i.price,
                     it.name as item_type_name
                 FROM layout_pos_terminal lpt
                 LEFT JOIN layout_indices li ON lpt.layout_indices_id = li.id
@@ -75,6 +76,7 @@ class LayoutPosTerminal {
                     l.name as layout_name,
                     loc.name as location_name,
                     i.name as item_name,
+                    i.price,
                     it.name as item_type_name
                 FROM layout_pos_terminal lpt
                 LEFT JOIN layout_indices li ON lpt.layout_indices_id = li.id
@@ -99,6 +101,7 @@ class LayoutPosTerminal {
                     li.grid_index,
                     l.name as layout_name,
                     i.name as item_name,
+                    i.price,
                     it.name as item_type_name
                 FROM layout_pos_terminal lpt
                 LEFT JOIN layout_indices li ON lpt.layout_indices_id = li.id
@@ -123,6 +126,7 @@ class LayoutPosTerminal {
                     li.grid_index,
                     l.name as layout_name,
                     i.name as item_name,
+                    i.price,
                     it.name as item_type_name
                 FROM layout_pos_terminal lpt
                 LEFT JOIN layout_indices li ON lpt.layout_indices_id = li.id

@@ -95,6 +95,7 @@ class OrdersController {
                 customer_id,
                 status_id,
                 order_type_id,
+                subtotal,
                 tax_percentage,
                 tax_amount,
                 total,
@@ -109,18 +110,19 @@ class OrdersController {
             // 1. Insert into orders (no shipping_address or billing_address)
             const orderInsertQuery = `
                 INSERT INTO "orders" (
-                  customer_id, status_id, order_type_id,
+                  customer_id, status_id, order_type_id, 
+                  subtotal,
                   tax_percentage, tax_amount, total,
                   role_id, location_id, payment_method_id, card_network_id, created_by
                 )
-                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
                 RETURNING id
               `;
             const orderResult = await client.query(orderInsertQuery, [
                 customer_id,
                 status_id,
                 order_type_id,
-
+                subtotal,
                 tax_percentage,
                 tax_amount,
                 total,
@@ -135,17 +137,19 @@ class OrdersController {
 
             // 2. Insert order items
             const itemPromises = items.map(item => {
+                const lineSubtotal = item.quantity * item.rate;
                 const itemInsertQuery = `
                INSERT INTO order_items (
-                 order_id, item_id, quantity, rate, tax_percentage, tax_amount, amount
+                 order_id, item_id, quantity, rate, subtotal,tax_percentage, tax_amount, amount
                )
-               VALUES ($1,$2,$3,$4,$5,$6,$7)
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
              `;
                 return client.query(itemInsertQuery, [
                     orderId,
                     item.item_id,
                     item.quantity,
                     item.rate,
+                    lineSubtotal,
                     item.tax_percentage,
                     item.tax_amount,
                     item.amount
