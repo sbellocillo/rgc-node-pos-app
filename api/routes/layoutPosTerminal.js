@@ -21,7 +21,7 @@ router.post('/', LayoutPosTerminalController.create);
 router.post('/bulk', LayoutPosTerminalController.bulkCreateForLocation);
 
 // Update position
-router.put('/:id', LayoutPosTerminalController.delete);
+router.put('/:id', LayoutPosTerminalController.update);
 
 // Delete position
 router.delete('/location/:location_id', LayoutPosTerminalController.deleteByLocation);

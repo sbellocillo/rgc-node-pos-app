@@ -87,6 +87,27 @@ class LayoutController {
         }
     }
 
+    // Get by location
+    async getByLocation(req, res) {
+        try {
+            const { location_id } = req.params;
+            const layouts = await Layout.getByLocation(location_id);
+
+            res.json({
+                success: true,
+                data: layouts,
+                count: layouts.length
+            });
+        } catch (error) {
+            console.error('Error fetching layouts by location:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error fetching layouts by location',
+                error: error.message
+            });
+        }
+    }
+
     // Create new layout
     async create(req, res) {
         try {

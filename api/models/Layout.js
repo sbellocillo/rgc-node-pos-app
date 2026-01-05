@@ -94,6 +94,23 @@ class Layout {
         }
     }
 
+    // Get layouts assigned to a location
+    static async getByLocation(location_id) {
+        try {
+            const result = await pool.query(`
+                    SELECT DISTINCT l.*, it.name as item_type_name
+                    FROM layouts l
+                    JOIN layout_pos_terminal lpt ON l.id = lpt.layout_id
+                    LEFT JOIN item_type it ON l.item_type_id = it.id
+                    WHERE lpt.location_id = $1
+                    ORDER BY l.name ASC
+                `, [location_id]);
+                return result.rows;
+        } catch (error) {
+            throw error;
+        }
+    }
+
     // Create new layout
     static async create(data) {
         const layout = new Layout(data);

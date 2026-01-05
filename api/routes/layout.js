@@ -11,6 +11,9 @@ router.get('/defaults', LayoutController.getDefaults);
 // Get layouts by item type
 router.get('/item-type/:item_type_id', LayoutController.getByItemType);
 
+// Get layouts by location
+router.get('/location/:location_id', LayoutController.getByLocation);
+
 // Get layout by ID
 router.get('/:id', LayoutController.getById);
 
