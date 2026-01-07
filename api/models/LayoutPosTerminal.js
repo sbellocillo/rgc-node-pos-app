@@ -212,10 +212,65 @@ class LayoutPosTerminal {
         }
     }
 
+    // Assign layout to location
+    static async assignLayoutToLocation(location_id, layout_id) {
+        const client = await pool.connect();
+
+        try {
+            await client.query('BEGIN');
+
+            const templateItems = await client.query(`
+                SELECT
+                    lt.layout_indices_id,
+                    lt.item_id,
+                    COALESCE(i.item_type_id, l.item_type_id) as item_type_id
+                FROM layout_templates lt
+                LEFT JOIN items i ON lt.item_id = i.id
+                JOIN layouts l ON lt.layout_id = l.id
+                WHERE lt.layout_id = $1
+                `, [layout_id]);
+
+            if (templateItems.rows.length === 0) {
+                throw new Error('This layout has no template items configured. PLease add items to the layout template first');                
+            }
+
+            const results = [];
+            for (const row of templateItems.rows) {
+                const result = await client.query(`
+                        INSERT INTO layout_pos_terminal
+                        (layout_indices_id, location_id, layout_id, item_id, item_type_id, is_active)
+                        VALUES ($1, $2, $3, $4, $5, $6)
+                        RETURNING *
+                    `, [
+                        row.layout_indices_id,
+                        location_id,
+                        layout_id,
+                        row.item_id,
+                        row.item_type_id,
+                        true
+                    ]);
+                    results.push(result.rows[0]);
+            }
+
+            await client.query('COMMIT');
+            return results;
+
+        } catch (error) {
+            await client.query('ROLLBACK');
+
+            if (error.code === '23505') {
+                throw new Error('This layout is already assigned to this location')
+            }
+            throw error;
+        } finally {
+            client.release();
+        }
+    }
+
     // Update position
     static async update(id, data) {
         const position = new LayoutPosTerminal(data);
-        const errors = position.validate();  // FIXED: lowercase
+        const errors = position.validate();  
 
         if (errors.length > 0) {
             throw new Error(errors.join(', '));

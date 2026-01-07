@@ -117,7 +117,11 @@ class LayoutTemplate {
                         updated_at = CURRENT_TIMESTAMP
                     RETURNING *
                 `;
-                const values = [itemData.layout_id, itemData.layout_indices_id, itemData.item_id];
+                const values = [
+                    itemData.layout_id, 
+                    itemData.layout_indices_id, 
+                    itemData.item_id || null
+                ];
                 const res = await client.query(query, values);
                 results.push(res.rows[0]);
             }
@@ -152,7 +156,7 @@ class LayoutTemplate {
                 `, [
                     template.layout_id,
                     template.layout_indices_id,
-                    template.item_id
+                    template.item_id || null
                 ]);
                 return result.rows[0];
         } catch (error) {

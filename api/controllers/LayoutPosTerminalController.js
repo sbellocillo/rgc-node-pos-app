@@ -154,6 +154,56 @@ class LayoutPosTerminalController {
         }
     }
 
+    // Assign layout to location
+    async assignLayout(req, res) {
+        try {
+            const { location_id, layout_id } = req.body;
+
+            // Validation
+            if (!location_id || !layout_id) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Location ID, Layout ID, and mappings array are required'
+                });
+            }
+
+            // Call model
+            const positions = await LayoutPosTerminal.assignLayoutToLocation(location_id, layout_id);
+
+            res.status(201).json({
+                success: true,
+                message: 'Layout successfully assignd to location',
+                data: positions,
+                count: positions.length
+            });
+
+        } catch (error) {
+            console.error('Error assigning layout', error);
+
+            // Handle duplicate assignment gracefully
+            if (error.message.includes('already assigned')) {
+                return res.status(409).json({
+                    success: false,
+                    message: error.message
+                });
+            }
+
+            // Handle empty template error
+            if (error.message.includes('no template items')) {
+                return res.status(400).json({
+                    success: false,
+                    message: error.message
+                });
+            }
+
+            res.status(500).json({
+                success: false,
+                message: 'Error assigning layout',
+                error: error.message
+            });
+        }
+    }
+
     async update(req, res) {
         try {
             const { id } = req.params;

@@ -20,6 +20,9 @@ router.post('/', LayoutPosTerminalController.create);
 // Bulk create positions for a location
 router.post('/bulk', LayoutPosTerminalController.bulkCreateForLocation);
 
+// Assign layout to location
+router.post('/assign', LayoutPosTerminalController.assignLayout);
+
 // Update position
 router.put('/:id', LayoutPosTerminalController.update);
 

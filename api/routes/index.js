@@ -19,7 +19,7 @@ const cardNetworkRoutes = require('./cardNetworks');
 const layoutRoutes = require('./layout');
 const layoutIndices = require('./layoutIndices');
 const layoutPosTerminal = require('./layoutPosTerminal');
-const layoutTemplateRoutes = require('./layoutTemplates'); // <--- NEW: Import the new route
+const layoutTemplateRoutes = require('./layoutTemplates'); 
 
 // Mount routes
 router.use('/users', userRoutes);
@@ -39,7 +39,7 @@ router.use('/card-networks', cardNetworkRoutes);
 router.use('/layouts', layoutRoutes); 
 router.use('/layout-indices', layoutIndices);
 router.use('/layout-pos-terminal', layoutPosTerminal);
-router.use('/layout-templates', layoutTemplateRoutes); // <--- NEW: Mount the route
+router.use('/layout-templates', layoutTemplateRoutes); 
 
 // API root endpoint
 router.get('/', (req, res) => {

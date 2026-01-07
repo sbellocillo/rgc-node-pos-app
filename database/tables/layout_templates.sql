@@ -2,7 +2,7 @@ CREATE TABLE IF NOT EXISTS layout_templates (
 id SERIAL PRIMARY KEY,
     layout_id INT NOT NULL,
     layout_indices_id INT NOT NULL,
-    item_id INT NOT NULL,  -- Renamed from default_item_id
+    item_id INT,
     
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
