@@ -172,7 +172,7 @@ class LayoutPosTerminalController {
 
             res.status(201).json({
                 success: true,
-                message: 'Layout successfully assignd to location',
+                message: 'Layout successfully assigned to location',
                 data: positions,
                 count: positions.length
             });
