@@ -64,34 +64,13 @@ class OrdersController {
         }
     }
 
-
-    //create order structure
-    // {
-    //   "customer_id": 1,
-    //   "status_id": 1,
-    //   "order_type_id": 1,
-    //   "subtotal": 100,
-    //   "tax_percentage": 0.12,
-    //   "tax_amount": 12,
-    //   "total": 112,
-    //   "role_id": 2,
-    //   "location_id": 1,
-    //   "payment_method_id": 1,
-    //   "created_by": 1,
-    //   "items": [
-    //     { "item_id": 101, "quantity": 2, "rate": 50, "subtotal": 100, "tax_percentage": 0.12, "tax_amount": 12, "amount": 112 }
-    //   ]
-    // }
-
-
     static async createOrder(req, res) {
-        // controllers/orderController.js
-
         const client = await pool.connect();
         try {
             await client.query('BEGIN');
 
             const {
+                user_id,
                 customer_id,
                 status_id,
                 order_type_id,
@@ -104,21 +83,26 @@ class OrdersController {
                 payment_method_id,
                 card_network_id,
                 created_by,
+                memo,
                 items // array of items [{ item_id, quantity, rate, tax_percentage, tax_amount, amount }]
             } = req.body;
+            
             console.log("creating order", req.body)
-            // 1. Insert into orders (no shipping_address or billing_address)
+            
+            // 1. Insert into orders
             const orderInsertQuery = `
                 INSERT INTO "orders" (
+                  user_id,
                   customer_id, status_id, order_type_id, 
                   subtotal,
                   tax_percentage, tax_amount, total,
-                  role_id, location_id, payment_method_id, card_network_id, created_by
+                  role_id, location_id, payment_method_id, card_network_id, created_by, memo
                 )
-                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
                 RETURNING id
               `;
             const orderResult = await client.query(orderInsertQuery, [
+                user_id,
                 customer_id,
                 status_id,
                 order_type_id,
@@ -130,7 +114,8 @@ class OrdersController {
                 location_id,
                 payment_method_id,
                 card_network_id,
-                created_by
+                created_by,
+                memo
             ]);
 
             const orderId = orderResult.rows[0].id;
@@ -278,23 +263,23 @@ class OrdersController {
                 items // new items array to replace existing items
             } = req.body;
 
-            // 1. Update order
+            // 1. Update order (Fixed table name from "order" to orders)
             const updateOrderQuery = `
-      UPDATE "order"
-      SET 
-        customer_id = $1,
-        status_id = $2,
-        order_type_id = $3,
-        subtotal = $4,
-        tax_percentage = $5,
-        tax_amount = $6,
-        total = $7,
-        role_id = $8,
-        location_id = $9,
-        payment_method_id = $10,
-        created_by = $11
-      WHERE id = $12
-    `;
+              UPDATE orders
+              SET 
+                customer_id = $1,
+                status_id = $2,
+                order_type_id = $3,
+                subtotal = $4,
+                tax_percentage = $5,
+                tax_amount = $6,
+                total = $7,
+                role_id = $8,
+                location_id = $9,
+                payment_method_id = $10,
+                created_by = $11
+              WHERE id = $12
+            `;
 
             await client.query(updateOrderQuery, [
                 customer_id,
@@ -312,16 +297,16 @@ class OrdersController {
             ]);
 
             // 2. Delete old items (soft delete)
-            await client.query(`UPDATE order_item SET is_active = false WHERE order_id = $1`, [order_id]);
+            await client.query(`UPDATE order_items SET is_active = false WHERE order_id = $1`, [order_id]);
 
             // 3. Insert new items
             const itemPromises = items.map(item => {
                 const insertItemQuery = `
-        INSERT INTO order_item (
-          order_id, item_id, quantity, rate, subtotal, tax_percentage, tax_amount, amount
-        )
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-      `;
+                INSERT INTO order_items (
+                  order_id, item_id, quantity, rate, subtotal, tax_percentage, tax_amount, amount
+                )
+                VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+              `;
 
                 return client.query(insertItemQuery, [
                     order_id,
@@ -352,6 +337,7 @@ class OrdersController {
             client.release();
         }
     };
+
     // Update order with tax recalculation
     static async updateOrderv1(req, res) {
         const client = await pool.connect();
@@ -392,12 +378,13 @@ class OrdersController {
 
             const amounts = Orders.calculateAmounts(orderData.subtotal, taxPercentage);
 
+            // Removed updated_at
             const result = await client.query(`
                 UPDATE orders SET 
                     user_id = $1, customer_name = $2, customer_email = $3, customer_phone = $4,
                     status_id = $5, order_type_id = $6, subtotal = $7, tax_percentage = $8,
                     tax_amount = $9, total_amount = $10, payment_method_id = $11,
-                    location_id = $12, card_network_id = $13, special_instructions = $14, updated_at = CURRENT_TIMESTAMP
+                    location_id = $12, card_network_id = $13, special_instructions = $14
                 WHERE order_id = $15
                 RETURNING *`,
                 [
@@ -530,9 +517,9 @@ class OrdersController {
 
             const cancelledStatusId = cancelledStatusQuery.rows[0].id;
 
-            // Update order status to cancelled
+            // Update order status to cancelled (Removed updated_at)
             const orderResult = await client.query(
-                'UPDATE orders SET status_id = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *',
+                'UPDATE orders SET status_id = $1 WHERE id = $2 RETURNING *',
                 [cancelledStatusId, id]
             );
 
@@ -566,6 +553,104 @@ class OrdersController {
         }
     }
 
+    // Get active orders
+    static async getOrderQueue(req, res) {
+        try {
+            const query = `
+            SELECT
+                o.id,
+                o.order_date,
+                o.memo,
+                o.status_id,
+                s.name as status_name,
+                ot.name as order_type_name,
+                CONCAT(c.first_name, ' ', c.last_name) as customer_name,
+                COALESCE(
+                    json_agg(
+                        json_build_object(
+                            'id', oi.id,
+                            'item_name', i.name,
+                            'quantity', oi.quantity,
+                            'notes', o.memo
+                        )
+                    ) FILTER (WHERE oi.id IS NOT NULL),
+                     '[]'
+                ) as items
+            FROM orders o
+            JOIN status s ON o.status_id = s.id
+            JOIN order_type ot ON o.order_type_id = ot.id
+            LEFT JOIN customers c ON o.customer_id = c.id
+            LEFT JOIN order_items oi ON o.id = oi.order_id
+            LEFT JOIN items i ON oi.item_id = i.id
+            WHERE o.status_id IN (1, 2)
+            GROUP BY o.id, s.name, ot.name, c.first_name, c.last_name
+            ORDER BY
+                CASE WHEN o.status_id = 2 THEN 0 ELSE 1 END,
+                o.order_date ASC
+            `;
+
+            const result = await pool.query(query);
+
+            res.status(200).json({
+                success: true,
+                count: result.rows.length,
+                data: result.rows
+            });
+        } catch (error) {
+            console.error('Error fetching queue:', error);
+            res.status(500).json({ success: false, error: error.message });
+        }
+    }
+
+    // Update Status
+    static async updateStatus(req, res) {
+        let client;
+        try {
+            client = await pool.connect();
+
+            const { id } = req.params;
+            let { status_id } = req.body;
+
+            const orderId = parseInt(id);
+            status_id = parseInt(status_id);
+
+            // Validation
+            if (![1, 2, 3, 4, 5].includes(status_id)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid status ID'
+                });
+            }
+
+            // Removed updated_at
+            const query = `
+                UPDATE orders
+                SET status_id = $1
+                WHERE id = $2
+                RETURNING id, status_id
+            `;
+
+            // Fixed the missing comma here
+            const result = await client.query(query, [status_id, orderId]);
+
+            if (result.rows.length === 0) {
+                return res.status(404).json({ success: false, message: 'Order not found' });
+            }
+
+            res.status(200).json({
+                success: true,
+                message: 'Status updated successfully',
+                data: result.rows[0]
+            });
+
+        } catch (error) {
+            console.error('Error updating status:', error);
+            res.status(500).json({ success: false, error: error.message });
+        } finally {
+            if (client) client.release();
+        }
+    }
+
     // Get cancelled orders
     static async getCancelledOrders(req, res) {
         try {
@@ -578,7 +663,7 @@ class OrdersController {
                 LEFT JOIN order_items oi ON o.id = oi.order_id
                 WHERE LOWER(s.name) = 'cancelled' AND o.is_active = true
                 GROUP BY o.id, s.name
-                ORDER BY o.updated_at DESC
+                ORDER BY o.order_date DESC
             `;
 
             const result = await pool.query(query);

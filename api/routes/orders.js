@@ -8,6 +8,12 @@ router.get('/', OrdersController.getAllOrders);
 // GET /api/orders/cancelled - Get cancelled orders
 router.get('/cancelled', OrdersController.getCancelledOrders);
 
+// GET /api/orders/queue - Get active orders
+router.get('/queue', OrdersController.getOrderQueue);
+
+// PATCH /api/orders/:id/status - Update order status
+router.patch('/:id/status', OrdersController.updateStatus);
+
 // GET /api/orders/:id - Get order by ID
 router.get('/:id', OrdersController.getOrderById);
 

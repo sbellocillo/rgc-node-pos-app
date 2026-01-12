@@ -1,6 +1,7 @@
 class Orders {
     constructor(id, customer_id, order_date, shipping_address, billing_address, status_id, quantity, order_type_id, subtotal, tax_percentage, tax_amount, total, role_id, location_id, payment_method_id, card_network_id, created_at, created_by) {
         this.id = id;
+        this.user_id = this.user_id;
         this.customer_id = customer_id;
         this.order_date = order_date;
         this.shipping_address = shipping_address;
@@ -23,6 +24,7 @@ class Orders {
     static create(orderData) {
         return new Orders(
             orderData.id,
+            orderData.user_id,
             orderData.customer_id,
             orderData.order_date || new Date(),
             orderData.shipping_address,
@@ -55,6 +57,7 @@ class Orders {
     toJSON() {
         return {
             id: this.id,
+            user_id: this.user_id,
             customer_id: this.customer_id,
             order_date: this.order_date,
             shipping_address: this.shipping_address,
