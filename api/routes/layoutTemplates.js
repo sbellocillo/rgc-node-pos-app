@@ -14,8 +14,8 @@ router.post('/bulk', LayoutTemplateController.bulkSave);
 // Create single template (Optional)
 router.post('/', LayoutTemplateController.create);
 
-//Delelte entrie template
-router.delete('/layout/:layout_id', LayoutTemplateController.deleteByLayout);
+//Delelte entire template
+router.delete('/layouts/:layout_id', LayoutTemplateController.deleteByLayout);
 
 // Delete template
 router.delete('/:id', LayoutTemplateController.delete);

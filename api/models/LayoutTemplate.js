@@ -65,6 +65,121 @@ class LayoutTemplate {
         }
     }
 
+    // Sync (Update)
+    static async sync(layoutId, items) {
+        const client = await pool.connect();
+
+        try {
+          await client.query('BEGIN');
+
+          // --- SYNC LAYOUT TEMPLATE ---
+
+          // Clear if empty
+          if (!items || items.length === 0) {
+            await client.query('DELETE FROM layout_templates WHERE layout_id = $1', [layoutId]);
+          } else {
+            // Remove deleted slots
+            const validItems = items.filter(i => i.layout_indices_id);
+            const activeIndices = validItems.map(i => i.layout_indices_id);
+
+            if (activeIndices.length > 0) {
+                const placeholders = activeIndices.map((_, i) => `$${i+2}`).join(',');
+                const deleteQuery = `
+                    DELETE FROM layout_templates
+                    WHERE layout_id = $1
+                    AND layout_indices_id NOT IN (${placeholders})
+                `;
+                await client.query(deleteQuery, [layoutId, ...activeIndices]); 
+            } else {
+                await client.query('DELETE FROM layout_templates WHERE layout_id = $1', [layoutId]);
+            }
+
+            // Upsert
+            const upsertQuery = `
+                INSERT INTO layout_templates (layout_id, layout_indices_id, item_id)
+                VALUES ($1,$2,$3)
+                ON CONFLICT (layout_id, layout_indices_id)
+                DO UPDATE SET
+                    item_id = EXCLUDED.item_id,
+                    updated_at = CURRENT_TIMESTAMP
+            `;
+
+            for (const itemData of items) {
+                if (!itemData.layout_indices_id) continue;
+
+                const values = [layoutId, itemData.layout_indices_id, itemData.item_id];
+                await client.query(upsertQuery, values);
+            }
+          }
+
+          // --- CASCADE TO POS TERMINALS TABLE --
+
+          // Find all locations that have this layout assigned
+            const locationsResult = await client.query(`
+                SELECT DISTINCT location_id
+                FROM layout_pos_terminal
+                WHERE layout_id = $1
+            `, [layoutId]);
+
+            const locationIds = locationsResult.rows.map(r => r.location_id);
+
+            if (locationIds.length > 0) {
+                // 2B. Delete old POS records for this layout at these locations
+                // This ensures slots removed from the template are removed from the POS
+                const locPlaceholders = locationIds.map((_, i) => `$${i + 2}`).join(',');
+                await client.query(`
+                        DELETE FROM layout_pos_terminal
+                        WHERE layout_id = $1
+                        AND location_id IN (${locPlaceholders})
+                    `, [layoutId, ...locationIds]);
+
+                // 2C. Re-insert the updated template items for these locations
+                // We fetch the "Fresh" template we just saved to ensure data integrity
+                const freshTemplate = await client.query(`
+                        SELECT
+                            lt.layout_indices_id,
+                            lt.item_id,
+                            COALESCE(i.item_type_id, l.item_type_id) as item_type_id
+                        FROM layout_templates lt
+                        LEFT JOIN items i ON lt.item_id = i.id
+                        JOIN layouts l ON lt.layout_id = l.id
+                        WHERE lt.layout_id = $1 
+                    `, [layoutId]);
+                
+                if (freshTemplate.rows.length > 0) {
+                    for (const locId of locationIds) {
+                        for (const row of freshTemplate.rows) {
+                            await client.query(`
+                                    INSERT INTO layout_pos_terminal
+                                    (layout_indices_id, location_id, layout_id, item_id, item_type_id, is_active)
+                                    VALUES ($1,$2,$3,$4,$5,$6)
+                                `, [
+                                    row.layout_indices_id,
+                                    locId,
+                                    layoutId,
+                                    row.item_id,
+                                    row.item_type_id,
+                                    true
+                                ]);
+                        }
+                    }
+                }
+            }
+
+            await client.query('COMMIT');
+
+            // Return updated template
+            const finalResult = await client.query('SELECT * FROM layout_templates WHERE layout_id =$1', [layoutId]);
+            return finalResult.rows;
+
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
+        }
+    }
+
     // Bulk Upsert (Create or Update multiple items)
     static async bulkUpsert(items) {
         if (!items || items.length === 0) return [];

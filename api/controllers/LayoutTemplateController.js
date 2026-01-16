@@ -53,25 +53,33 @@ class LayoutTemplateController {
     // Bulk Upsert (Save multiple slots at once)
     async bulkSave(req, res) {
         try {
-            const { items } = req.body;
+            const { layout_id, items } = req.body;
 
-            if (!items || !Array.isArray(items)) {
+            if (!layout_id) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Layout ID is required for bulk save'
+                });
+            }
+
+            if (!Array.isArray(items)) {
                 return res.status(400).json({
                     success: false,
                     message: 'Items array is required'
                 });
             }
 
-            const results = await LayoutTemplate.bulkUpsert(items);
+            // Call Sync method
+            const results = await LayoutTemplate.sync(layout_id, items);
 
             res.status(200).json({
                 success: true,
-                message: 'Layout templates updated successfully',
+                message: 'Layout syncronized successfully',
                 data: results,
                 count: results.length
             });
         } catch (error) {
-            console.error('Error saving layout templates:', error);
+            console.error('Error saying layout templates:', error);
             res.status(400).json({
                 success: false,
                 message: 'Error saving layout templates',
