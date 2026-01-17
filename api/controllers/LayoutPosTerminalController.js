@@ -204,6 +204,43 @@ class LayoutPosTerminalController {
         }
     }
 
+    async unassignLayout(req, res) {
+        try {
+            const { location_id, layout_id } = req.body;
+
+            // Validation
+            if(!location_id || !layout_id) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Location ID and Layout ID are required'
+                });
+            }
+
+            // Call Model
+            const deletedPositions = await LayoutPosTerminal.unassignLayoutFromLocation(location_id, layout_id);
+
+            if (deletedPositions.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'No assignment found for this layout and location'
+                });
+            }
+
+            res.json({
+                success: true,
+                message: 'Layout successfully unassigned from location',
+                count: deletedPositions.length
+            });
+        } catch (error) {
+            console.error('Error unassigning layout:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error unassigning layout',
+                error: error.message
+            });
+        }
+    }
+
     async update(req, res) {
         try {
             const { id } = req.params;

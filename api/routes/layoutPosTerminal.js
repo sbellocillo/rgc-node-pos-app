@@ -23,6 +23,9 @@ router.post('/bulk', LayoutPosTerminalController.bulkCreateForLocation);
 // Assign layout to location
 router.post('/assign', LayoutPosTerminalController.assignLayout);
 
+// Unassign layout from location
+router.post('/unassign', LayoutPosTerminalController.unassignLayout);
+
 // Update position
 router.put('/:id', LayoutPosTerminalController.update);
 

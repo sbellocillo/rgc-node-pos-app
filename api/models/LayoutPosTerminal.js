@@ -267,6 +267,21 @@ class LayoutPosTerminal {
         }
     }
 
+    // Unassign (remove) a layout from a location
+    static async unassignLayoutFromLocation(location_id, layout_id) {
+        try {
+            const result = await pool.query(`
+                    DELETE FROM layout_pos_terminal
+                    WHERE location_id = $1 AND layout_id = $2
+                    RETURNING *
+                `, [location_id, layout_id]);
+
+                return result.rows;
+        } catch (error) {
+            throw error;
+        }
+    }
+
     // Update position
     static async update(id, data) {
         const position = new LayoutPosTerminal(data);
