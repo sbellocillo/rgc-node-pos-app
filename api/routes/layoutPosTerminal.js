@@ -5,7 +5,10 @@ const LayoutPosTerminalController = require('../controllers/LayoutPosTerminalCon
 // Get all positions
 router.get('/', LayoutPosTerminalController.getAll);
 
-// Get positions by location
+// Get unique layouts assigned to a location (Optimized)
+router.get('/layouts/:location_id', LayoutPosTerminalController.getLayoutNameByLoc);
+
+// Get positions by location (Returns all item buttons - heavy load)
 router.get('/location/:location_id', LayoutPosTerminalController.getByLocation);
 
 // Get all postions by layout and location 

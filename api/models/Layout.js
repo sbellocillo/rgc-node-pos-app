@@ -37,6 +37,7 @@ class Layout {
                 SELECT l.*, it.name as item_type_name
                 FROM layouts l
                 LEFT JOIN item_type it ON l.item_type_id = it.id
+                WHERE l.is_active = true
                 ORDER BY l.is_default DESC, l.name ASC
             `);
             return result.rows;
@@ -173,6 +174,21 @@ class Layout {
             if (error.code === '23503') {
                 throw new Error('Invalid item type ID');
             }
+            throw error;
+        }
+    }
+
+    static async remove(id) {
+        try {
+            const result = await pool.query(`
+                    UPDATE layouts
+                    SET is_active = false
+                    WHERE id = $1
+                    RETURNING *
+                `, [id]);
+
+            return result.rows[0] || null;
+        } catch (error) {
             throw error;
         }
     }

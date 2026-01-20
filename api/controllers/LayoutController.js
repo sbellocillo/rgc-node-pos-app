@@ -184,6 +184,33 @@ class LayoutController {
         }
     }
 
+    async remove(req, res) {
+        try {
+            const { id } = req.params;
+            const layout = await Layout.remove(id);
+
+            if(!layout) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Layout not found'
+                });
+            }
+
+            res.json({
+                success: true,
+                message: 'Layout removed successfully',
+                data: layout
+            });
+        } catch (error) {
+            console.error('Error removing layout:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error removing layout',
+                error: error.message
+            });
+        }
+    }
+
     // Delete layout
     async delete(req, res) {
         try {

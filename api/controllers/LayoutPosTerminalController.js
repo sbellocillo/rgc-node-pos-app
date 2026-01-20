@@ -38,7 +38,7 @@ class LayoutPosTerminalController {
                 data: position
             });
         } catch (error) {
-            console.error('Error fetching positionn:', error);
+            console.error('Error fetching position:', error);
             res.status(500).json({
                 success: false,
                 message: 'Error fetching position',
@@ -63,6 +63,26 @@ class LayoutPosTerminalController {
             res.status(500).json({
                 success: false,
                 message: 'Error fetching positions by location',
+                error: error.message
+            });
+        }
+    }
+
+    // Get layouts by location
+    async getLayoutNameByLoc(req, res) {
+        try {
+            const { location_id } = req.params;
+            const name = await LayoutPosTerminal.getLayoutNameByLoc(location_id);
+            res.json({
+                success: true,
+                data: name,
+                count: name.length
+            });
+        } catch (error) {
+            console.error('Error fetching layouts by location:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error fetching layouts by location',
                 error: error.message
             });
         }

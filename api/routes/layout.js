@@ -23,6 +23,9 @@ router.post('/', LayoutController.create);
 // Update layout
 router.put('/:id', LayoutController.update);
 
+// Remove layout
+router.patch('/:id/remove', LayoutController.remove);
+
 // Delete layout
 router.delete('/:id', LayoutController.delete);
 

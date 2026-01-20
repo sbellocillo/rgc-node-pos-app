@@ -117,6 +117,28 @@ class LayoutPosTerminal {
         }
     }
 
+    // Get layout by location
+    static async getLayoutNameByLoc(location_id) {
+        try {
+            const result = await pool.query(`
+                    SELECT 
+                        l.id,
+                        l.name,
+                        l.is_active,
+                        l.is_default,
+                        MAX(it.name) as item_type_name
+                    FROM layout_pos_terminal lpt
+                    LEFT JOIN layouts l on lpt.layout_id = l.id
+                    LEFT JOIN item_type it on lpt.item_type_id = it.id 
+                    WHERE lpt.location_id = $1
+                    GROUP BY l.id, l.name, l.is_active, l.is_default
+                `, [location_id]);
+                return result.rows;
+        } catch (error) {
+            throw error;
+        }
+    }
+
     // Get positions by layout and location
     static async getByLayoutAndLocation(layout_id, location_id) {
         try {
@@ -231,7 +253,7 @@ class LayoutPosTerminal {
                 `, [layout_id]);
 
             if (templateItems.rows.length === 0) {
-                throw new Error('This layout has no template items configured. PLease add items to the layout template first');                
+                throw new Error('This layout has no template items configured. Please add items to the layout template first');                
             }
 
             const results = [];
