@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 // Import route modules
+const healthRoutes = require('./health');
 const userRoutes = require('./users');
 const customerRoutes = require('./customers');
 const itemRoutes = require('./items');
@@ -22,6 +23,7 @@ const layoutPosTerminal = require('./layoutPosTerminal');
 const layoutTemplateRoutes = require('./layoutTemplates'); 
 
 // Mount routes
+router.use('/health', healthRoutes);
 router.use('/users', userRoutes);
 router.use('/customers', customerRoutes);
 router.use('/items', itemRoutes);
