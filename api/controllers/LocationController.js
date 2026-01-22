@@ -1,4 +1,7 @@
 const pool = require('../config/database');
+const Location = require('../models/Location');
+const Layout = require('../models/Layout');
+const LayoutPosTerminal = require('../models/LayoutPosTerminal');
 
 // Generic controller for simple lookup tables (status, location, paymentmethod, order_type)
 // NOTE: Because createPost and createPut have hardcoded columns (house_number, etc.), 
@@ -9,43 +12,28 @@ class LocationController {
     // Generates 125 rows, but uses the CORRECT item_type_id from the layouts table
     static async generateTerminalRows(locationId) {
 
-        // 1. Default layouts when a new locations is created
-        const DEFAULT_LAYOUT_IDS = [1, 2, 3, 4, 5];
-
         try {
             console.log(`Starting menu generation for Location ${locationId}...`);
 
-            // 2. "Copy" Query
-            // - Generates the 25 slots for each layout (CROSS JOIN)
-            // - Pulls the correct Item Id if it exists (LEFT JOIN layout_templates) 
-            // - Pulls the correct Item Type (from layouts)
+            const defaultLayouts = await Layout.getDefaults();
 
-            const insertQuery = `
-                INSERT INTO layout_pos_terminal
-                (location_id, layout_id, layout_indices_id, item_id, item_type_id, is_active)
-                SELECT
-                    $1,
-                    l.id,
-                    li.id,
-                    lt.item_id,
-                    l.item_type_id,
-                    true
-                FROM layouts l
-                CROSS JOIN layout_indices li
-                LEFT JOIN layout_templates lt ON
-                    lt.layout_id = l.id AND
-                    lt.layout_indices_id = li.id
-                WHERE 
-                    l.id = ANY($2::int[])
-                    AND li.grid_index BETWEEN 1 AND 25;
-            `;
+            if(!defaultLayouts || defaultLayouts.length === 0) {
+                console.log('No default layouts found.')
+                return;
+            }
 
-            const result = await pool.query(insertQuery, [locationId, DEFAULT_LAYOUT_IDS]);
+            for (const layout of defaultLayouts) {
+                try{
+                    await LayoutPosTerminal.assignLayoutToLocation(locationId, layout.id);
+                    console.log(`Assigned Default Layout: ${layout.name} (ID: ${layout.id})`);
+                } catch (assignError) {
+                    console.error(`Failed to assign layout ${layout.id}:`, assignError.message);
+                }
+            }
 
-            console.log(`Successfully generated ${result.rowCount} terminal rows for Location ${locationId}`);
-
+            console.log(`Successfully generated terminal rows for Location ${locationId}`);
         } catch (error) {
-            console.error("Critical Error in generateTerminalRows:", error)
+            console.error('Critical Error in generateTerminalRows:', error);
         }
     }
     // --- UPDATED HELPER FUNCTION END ---
