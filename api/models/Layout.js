@@ -12,6 +12,24 @@ class Layout {
     }
 
     // Validate layout data
+    // validate() {
+    //     const errors = [];
+
+    //     if (!this.name || this.name.trim() === '') {
+    //         errors.push('Name is required');
+    //     }
+
+    //     if (!this.item_type_id) {
+    //         errors.push('Item type ID is required');
+    //     }
+
+    //     if (this.name && this.name.length > 50) {
+    //         errors.push('Name must be 50 characters or less');
+    //     }
+
+    //     return errors;
+    // }
+
     validate() {
         const errors = [];
 
@@ -19,12 +37,20 @@ class Layout {
             errors.push('Name is required');
         }
 
-        if (!this.item_type_id) {
-            errors.push('Item type ID is required');
-        }
-
         if (this.name && this.name.length > 50) {
             errors.push('Name must be 50 characters or less');
+        }
+
+        // ✅ item_type_id is OPTIONAL now
+        // If it exists, it must be a number
+        if (this.item_type_id !== undefined && this.item_type_id !== null && this.item_type_id !== '') {
+            const n = Number(this.item_type_id);
+            if (!Number.isInteger(n) || n <= 0) {
+            errors.push('Item type ID must be a valid number');
+            }
+            this.item_type_id = n; // normalize
+        } else {
+            this.item_type_id = null; // normalize to null
         }
 
         return errors;
@@ -171,9 +197,9 @@ class Layout {
             if (error.code === '23505') {
                 throw new Error('Layout name already exists');
             }
-            if (error.code === '23503') {
-                throw new Error('Invalid item type ID');
-            }
+            // if (error.code === '23503') {
+            //     throw new Error('Invalid item type ID');
+            // }
             throw error;
         }
     }

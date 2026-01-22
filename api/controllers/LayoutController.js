@@ -109,20 +109,52 @@ class LayoutController {
     }
 
     // Create new layout
+    // async create(req, res) {
+    //     try {
+    //         const { name, item_type_id, is_default, is_active } = req.body;
+
+    //         if (!name || !item_type_id) {
+    //             return res.status(400).json({
+    //                 success: false,
+    //                 message: 'Name and item type ID are required'
+    //             });
+    //         }
+
+    //         const layout = await Layout.create({
+    //             name,
+    //             item_type_id,
+    //             is_default,
+    //             is_active
+    //         });
+
+    //         res.status(201).json({
+    //             success: true,
+    //             message: 'Layout created successfully',
+    //             data: layout
+    //         });
+    //     } catch (error) {
+    //         console.error('Error creating layout:', error);
+    //         res.status(400).json({
+    //             success: false,
+    //             message: 'Error creating layout',
+    //             error: error.message
+    //         });
+    //     }
+    // } 
+
     async create(req, res) {
         try {
-            const { name, item_type_id, is_default, is_active } = req.body;
+            const { name, is_default, is_active } = req.body;
 
-            if (!name || !item_type_id) {
+            if (!name) {
                 return res.status(400).json({
                     success: false,
-                    message: 'Name and item type ID are required'
+                    message: 'Name is required'
                 });
             }
 
             const layout = await Layout.create({
                 name,
-                item_type_id,
                 is_default,
                 is_active
             });
