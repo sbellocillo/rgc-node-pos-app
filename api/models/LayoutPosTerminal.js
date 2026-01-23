@@ -268,7 +268,7 @@ class LayoutPosTerminal {
                         location_id,
                         layout_id,
                         row.item_id,
-                        row.item_type_id,
+                        row.item_type_id || null,
                         true
                     ]);
                     results.push(result.rows[0]);
