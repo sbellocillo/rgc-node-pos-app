@@ -21,3 +21,42 @@ CREATE TABLE IF NOT EXISTS orders (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_by INTEGER REFERENCES users(id)
 );
+
+-- 1. Create Index (Matches your WHERE clause perfectly for speed)
+CREATE INDEX IF NOT EXISTS idx_orders_pos_lookup
+ON public.orders (location_id, pos_terminal_number);
+
+-- 2. Create Function
+CREATE OR REPLACE FUNCTION set_location_order_number()
+RETURNS TRIGGER AS $$
+DECLARE
+    next_order INTEGER;
+    lock_key TEXT;
+BEGIN
+    -- Logic: Create unique lock key like "order_seq_15_1"
+    -- This ensures POS 1 never blocks POS 2
+    lock_key := 'order_seq_' || NEW.location_id::text || '_' || NEW.pos_terminal_number::text;
+    
+    -- Pause only if another transaction is writing to THIS exact POS at the same microsecond
+    PERFORM pg_advisory_xact_lock(hashtext(lock_key));
+
+    -- Count existing orders for this specific POS terminal
+    SELECT COALESCE(MAX(order_number), 0) + 1
+    INTO next_order
+    FROM public.orders
+    WHERE location_id = NEW.location_id
+      AND pos_terminal_number = NEW.pos_terminal_number;
+
+    NEW.order_number := next_order;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 3. Create Trigger
+DROP TRIGGER IF EXISTS trigger_set_order_number ON public.orders;
+
+CREATE TRIGGER trigger_set_order_number
+BEFORE INSERT ON public.orders
+FOR EACH ROW
+EXECUTE FUNCTION set_location_order_number();

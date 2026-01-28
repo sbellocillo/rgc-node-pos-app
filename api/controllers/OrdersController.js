@@ -84,7 +84,8 @@ class OrdersController {
                 card_network_id,
                 created_by,
                 memo,
-                items // array of items [{ item_id, quantity, rate, tax_percentage, tax_amount, amount }]
+                items, // array of items [{ item_id, quantity, rate, tax_percentage, tax_amount, amount }]
+                pos_terminal_number
             } = req.body;
             
             console.log("creating order", req.body)
@@ -96,10 +97,12 @@ class OrdersController {
                   customer_id, status_id, order_type_id, 
                   subtotal,
                   tax_percentage, tax_amount, total,
-                  role_id, location_id, payment_method_id, card_network_id, created_by, memo
+                  role_id, location_id, payment_method_id, card_network_id, created_by, memo,
+
+                  pos_terminal_number
                 )
-                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
-                RETURNING id
+                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+                RETURNING id, order_number
               `;
             const orderResult = await client.query(orderInsertQuery, [
                 user_id,
@@ -115,10 +118,12 @@ class OrdersController {
                 payment_method_id,
                 card_network_id,
                 created_by,
-                memo
+                memo,
+                pos_terminal_number || 1
             ]);
 
             const orderId = orderResult.rows[0].id;
+            const orderNumber = orderResult.rows[0].order_number;
 
             // 2. Insert order items
             const itemPromises = items.map(item => {
@@ -145,7 +150,7 @@ class OrdersController {
 
             await client.query('COMMIT');
 
-            res.status(201).json({ message: 'Order created', orderId });
+            res.status(201).json({ message: 'Order created', orderId, orderNumber });
         } catch (error) {
             await client.query('ROLLBACK');
             console.error(error);
@@ -599,6 +604,36 @@ class OrdersController {
         } catch (error) {
             console.error('Error fetching queue:', error);
             res.status(500).json({ success: false, error: error.message });
+        }
+    }
+
+    // Get next order number
+    static async getNextOrderNumber(req, res) {
+        try {
+            const { location_id, pos_terminal_number } = req.query;
+
+            const locId = parseInt(location_id);
+            const posId = parseInt(pos_terminal_number);
+
+            if (!location_id || !pos_terminal_number) {
+                return res.status(400).json({ success: false, message: 'Missing location or POS ID'});
+            }
+
+            const query = `
+                SELECT COALESCE(MAX(order_number), 0) + 1 as next_number
+                FROM orders
+                WHERE location_id = $1 AND pos_terminal_number = $2
+            `;
+
+            const result = await pool.query(query, [locId, posId]);
+
+            res.status(200).json({
+                success: true,
+                nextNumber: parseInt(result.rows[0].next_number)
+            });
+        } catch (error) {
+            console.error('Error fetching next number:', error.message);
+            res.status(500).json({ success: false, message: 'Error fetching number'});
         }
     }
 
