@@ -35,3 +35,6 @@ INSERT INTO location (
     ('Ribshack Cebu Branch', '321', NULL, 'Colon Street', 'Barangay Lahug', 'Cebu City', 'Cebu', 'Region VII', '6000', '(032) 412-3456'),
     ('Ribshack Davao Branch', '654', 'Unit 1A', 'C.M. Recto Avenue', 'Barangay Poblacion District', 'Davao City', 'Davao del Sur', 'Region XI', '8000', '(082) 321-4567')
 ON CONFLICT (name) DO NOTHING;
+
+ALTER TABLE location ADD COLUMN tin VARCHAR(50);
+ALTER TABLE location ADD COLUMN branch_code VARCHAR(20);

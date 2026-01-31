@@ -21,6 +21,7 @@ const layoutRoutes = require('./layout');
 const layoutIndices = require('./layoutIndices');
 const layoutPosTerminal = require('./layoutPosTerminal');
 const layoutTemplateRoutes = require('./layoutTemplates'); 
+const posTerminalRoutes = require('./posTerminals');
 
 // Mount routes
 router.use('/health', healthRoutes);
@@ -41,7 +42,8 @@ router.use('/card-networks', cardNetworkRoutes);
 router.use('/layouts', layoutRoutes); 
 router.use('/layout-indices', layoutIndices);
 router.use('/layout-pos-terminal', layoutPosTerminal);
-router.use('/layout-templates', layoutTemplateRoutes); 
+router.use('/layout-templates', layoutTemplateRoutes);
+router.use('/pos-terminals', posTerminalRoutes); 
 
 // API root endpoint
 router.get('/', (req, res) => {
@@ -67,6 +69,7 @@ router.get('/', (req, res) => {
             layoutIndices: '/rgc/api/layout-indices',
             layoutPosTerminal: '/rgc/api/layout-pos-terminal',
             layoutTemplates: '/rgc/api/layout-templates', 
+            posTerminals: '/rgc/api/pos-terminals',
             health: '/health'
         }
     });
