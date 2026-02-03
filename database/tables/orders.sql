@@ -60,3 +60,14 @@ CREATE TRIGGER trigger_set_order_number
 BEFORE INSERT ON public.orders
 FOR EACH ROW
 EXECUTE FUNCTION set_location_order_number();
+
+-- 1. Add the column to store the device's UUID
+ALTER TABLE public.orders 
+ADD COLUMN offline_uuid VARCHAR(36);
+
+-- 2. Make it UNIQUE (Critical for preventing duplicate orders during sync)
+ALTER TABLE public.orders 
+ADD CONSTRAINT uq_orders_offline_uuid UNIQUE (offline_uuid);
+
+-- 3. Add an index so the sync check is fast
+CREATE INDEX idx_orders_offline_uuid ON public.orders(offline_uuid);
