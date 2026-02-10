@@ -71,3 +71,6 @@ ADD CONSTRAINT uq_orders_offline_uuid UNIQUE (offline_uuid);
 
 -- 3. Add an index so the sync check is fast
 CREATE INDEX idx_orders_offline_uuid ON public.orders(offline_uuid);
+
+-- For queueing system
+ALTER TABLE public.orders ADD COLUMN table_number varchar(3);

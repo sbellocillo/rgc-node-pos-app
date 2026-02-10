@@ -18,7 +18,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Enable CORS
-app.use(cors());
+app.use(cors({
+    origin: 'http://localhost:8081',
+    credentials: true
+}));
 // Mount API routes
 app.use('/rgc/api', apiRoutes);
 

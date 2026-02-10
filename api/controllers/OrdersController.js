@@ -70,55 +70,61 @@ class OrdersController {
             await client.query('BEGIN');
 
             const {
+                offline_uuid,
                 user_id,
                 customer_id,
                 status_id,
                 order_type_id,
-                subtotal,
                 tax_percentage,
                 tax_amount,
+                subtotal,
                 total,
                 role_id,
                 location_id,
+                shipping_address,
+                billing_address,
                 payment_method_id,
                 card_network_id,
                 created_by,
                 memo,
-                items, // array of items [{ item_id, quantity, rate, tax_percentage, tax_amount, amount }]
-                pos_terminal_number
+                table_number,
+                pos_terminal_number,
+                items // array of items [{ item_id, quantity, rate, tax_percentage, tax_amount, amount }]
             } = req.body;
-            
+
             console.log("creating order", req.body)
-            
+
             // 1. Insert into orders
             const orderInsertQuery = `
                 INSERT INTO "orders" (
-                  user_id,
-                  customer_id, status_id, order_type_id, 
-                  subtotal,
-                  tax_percentage, tax_amount, total,
-                  role_id, location_id, payment_method_id, card_network_id, created_by, memo,
-
-                  pos_terminal_number
+                  offline_uuid, user_id, customer_id, status_id, order_type_id,
+                  tax_percentage, tax_amount, subtotal, total,
+                  role_id, location_id, shipping_address, billing_address,
+                  payment_method_id, card_network_id, created_by, memo,
+                  table_number, pos_terminal_number
                 )
-                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
                 RETURNING id, order_number
               `;
             const orderResult = await client.query(orderInsertQuery, [
+                offline_uuid || null,
                 user_id,
                 customer_id,
                 status_id,
                 order_type_id,
-                subtotal,
                 tax_percentage,
                 tax_amount,
+                subtotal,
                 total,
                 role_id,
                 location_id,
+                shipping_address || null,
+                billing_address || null,
                 payment_method_id,
                 card_network_id,
                 created_by,
-                memo,
+                memo || null,
+                table_number || null,
                 pos_terminal_number || 1
             ]);
 
@@ -263,15 +269,20 @@ class OrdersController {
                 total,
                 role_id,
                 location_id,
+                shipping_address,
+                billing_address,
                 payment_method_id,
+                card_network_id,
                 created_by,
+                memo,
+                table_number,
                 items // new items array to replace existing items
             } = req.body;
 
-            // 1. Update order (Fixed table name from "order" to orders)
+            // 1. Update order
             const updateOrderQuery = `
               UPDATE orders
-              SET 
+              SET
                 customer_id = $1,
                 status_id = $2,
                 order_type_id = $3,
@@ -281,9 +292,14 @@ class OrdersController {
                 total = $7,
                 role_id = $8,
                 location_id = $9,
-                payment_method_id = $10,
-                created_by = $11
-              WHERE id = $12
+                shipping_address = $10,
+                billing_address = $11,
+                payment_method_id = $12,
+                card_network_id = $13,
+                created_by = $14,
+                memo = $15,
+                table_number = $16
+              WHERE id = $17
             `;
 
             await client.query(updateOrderQuery, [
@@ -296,8 +312,13 @@ class OrdersController {
                 total,
                 role_id,
                 location_id,
+                shipping_address || null,
+                billing_address || null,
                 payment_method_id,
+                card_network_id || null,
                 created_by,
+                memo || null,
+                table_number || null,
                 order_id
             ]);
 

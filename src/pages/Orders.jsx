@@ -303,7 +303,6 @@ const Orders = () => {
   let postNewOrder = async (data) => {
     try {
       let response = apiEndpoints.orders.create(data);
-      alert('Order created successfully');
     } catch (e) {
       console.error('Error creating location:', error);
     }
