@@ -585,9 +585,11 @@ class OrdersController {
             const query = `
             SELECT
                 o.id,
+                o.order_number,
                 o.order_date,
                 o.memo,
                 o.status_id,
+                o.table_number,
                 s.name as status_name,
                 ot.name as order_type_name,
                 CONCAT(c.first_name, ' ', c.last_name) as customer_name,
