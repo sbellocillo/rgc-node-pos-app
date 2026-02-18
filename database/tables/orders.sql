@@ -74,3 +74,8 @@ CREATE INDEX idx_orders_offline_uuid ON public.orders(offline_uuid);
 
 -- For queueing system
 ALTER TABLE public.orders ADD COLUMN table_number varchar(3);
+
+-- Discounts
+ALTER TABLE orders 
+ADD COLUMN discount_amount DECIMAL(10,2) DEFAULT 0.00,
+ADD COLUMN discount_percentage DECIMAL(5,4) DEFAULT 0;

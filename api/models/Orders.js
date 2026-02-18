@@ -1,7 +1,8 @@
 class Orders {
-    constructor(id, customer_id, order_date, shipping_address, billing_address, status_id, quantity, order_type_id, subtotal, tax_percentage, tax_amount, total, role_id, location_id, payment_method_id, card_network_id, created_at, created_by, order_number, pos_terminal_number, offline_uuid, table_number, memo) {
+    // FIXED: Added 'user_id' to the arguments list
+    constructor(id, user_id, customer_id, order_date, shipping_address, billing_address, status_id, quantity, order_type_id, subtotal, tax_percentage, tax_amount, total, role_id, location_id, payment_method_id, card_network_id, created_at, created_by, order_number, pos_terminal_number, offline_uuid, table_number, memo, discount_amount, discount_percentage) {
         this.id = id;
-        this.user_id = this.user_id;
+        this.user_id = user_id; // FIXED: Was 'this.user_id = this.user_id'
         this.customer_id = customer_id;
         this.order_date = order_date;
         this.shipping_address = shipping_address;
@@ -24,11 +25,14 @@ class Orders {
         this.offline_uuid = offline_uuid;
         this.table_number = table_number;
         this.memo = memo;
+        this.discount_amount = discount_amount;
+        this.discount_percentage = discount_percentage;
     }
 
     static create(orderData) {
         return new Orders(
             orderData.id,
+            orderData.user_id, // FIXED: Added this to match constructor
             orderData.customer_id,
             orderData.order_date || new Date(),
             orderData.shipping_address,
@@ -50,10 +54,13 @@ class Orders {
             orderData.pos_terminal_number,
             orderData.offline_uuid || null,
             orderData.table_number || null,
-            orderData.memo || null
+            orderData.memo || null,
+            orderData.discount_amount || 0,
+            orderData.discount_percentage || 0
         );
     }
 
+    // ... (rest of the file: calculateTax, toJSON, validate remain the same)
     calculateTax() {
         if (this.subtotal && this.tax_percentage) {
             this.tax_amount = parseFloat((this.subtotal * this.tax_percentage).toFixed(2));
@@ -87,7 +94,9 @@ class Orders {
             pos_terminal_number: this.pos_terminal_number,
             offline_uuid: this.offline_uuid,
             table_number: this.table_number,
-            memo: this.memo
+            memo: this.memo,
+            discount_amount: this.discount_amount,
+            discount_percentage: this.discount_percentage
         };
     }
 

@@ -64,6 +64,77 @@ class OrdersController {
         }
     }
 
+   static async getZReadingByPOS(req, res) {
+    try {
+        const { pos_terminal_number } = req.params;
+
+        // --- 1. Main Financials (Gross, Net, Tax) ---
+        // FIX: Changed 'total_amount' to 'total' to match your SQL schema
+        // ADDED: 'is_active = true' to exclude voided/cancelled orders
+        const statsQuery = `
+            SELECT 
+                COUNT(*) as total_transactions,
+                COALESCE(SUM(total), 0) as gross_sales,
+                COALESCE(SUM(subtotal), 0) as net_sales,
+                COALESCE(SUM(tax_amount), 0) as total_tax,
+                COALESCE(SUM(discount_amount), 0) as total_discount,
+                MIN(order_date) as first_transaction,
+                MAX(order_date) as last_transaction
+            FROM orders 
+            WHERE pos_terminal_number = $1 
+            AND created_at::date = CURRENT_DATE 
+            AND is_active = true`;
+
+        // --- 2. Breakdown by Payment Method ---
+        // This helps you see how much Cash vs Credit Card you should have
+        const paymentQuery = `
+            SELECT 
+                pm.name as method_name,
+                COUNT(*) as count,
+                COALESCE(SUM(o.total), 0) as amount
+            FROM orders o
+            LEFT JOIN paymentmethod pm ON o.payment_method_id = pm.id
+            WHERE o.pos_terminal_number = $1 
+            AND o.created_at::date = CURRENT_DATE
+            AND o.is_active = true
+            GROUP BY pm.name`;
+
+        // Run both queries in parallel for speed
+        const [statsResult, paymentResult] = await Promise.all([
+            pool.query(statsQuery, [pos_terminal_number]),
+            pool.query(paymentQuery, [pos_terminal_number])
+        ]);
+
+        // Validation: If no transactions, return 404
+        if (parseInt(statsResult.rows[0].total_transactions) === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'No active orders found for this terminal today.'
+            });
+        }
+
+        // Combine the results
+        const zReadingData = {
+            ...statsResult.rows[0],
+            payment_breakdown: paymentResult.rows
+        };
+
+        res.status(200).json({
+            success: true,
+            message: 'Z-Reading generated successfully',
+            data: zReadingData
+        });
+
+    } catch (error) {
+        console.error("Z-Reading Error:", error);
+        res.status(500).json({
+            success: false,
+            message: 'Error retrieving Z-Reading',
+            error: error.message
+        });
+    }
+}
+
     static async createOrder(req, res) {
         const client = await pool.connect();
         try {
@@ -89,6 +160,8 @@ class OrdersController {
                 memo,
                 table_number,
                 pos_terminal_number,
+                discount_amount,
+                discount_percentage,
                 items // array of items [{ item_id, quantity, rate, tax_percentage, tax_amount, amount }]
             } = req.body;
 
@@ -101,9 +174,9 @@ class OrdersController {
                   tax_percentage, tax_amount, subtotal, total,
                   role_id, location_id, shipping_address, billing_address,
                   payment_method_id, card_network_id, created_by, memo,
-                  table_number, pos_terminal_number
+                  table_number, pos_terminal_number, discount_amount, discount_percentage
                 )
-                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
+                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
                 RETURNING id, order_number
               `;
             const orderResult = await client.query(orderInsertQuery, [
@@ -125,7 +198,9 @@ class OrdersController {
                 created_by,
                 memo || null,
                 table_number || null,
-                pos_terminal_number || 1
+                pos_terminal_number || 1,
+                discount_amount || 0,
+                discount_percentage || 0
             ]);
 
             const orderId = orderResult.rows[0].id;
@@ -276,6 +351,8 @@ class OrdersController {
                 created_by,
                 memo,
                 table_number,
+                discount_amount,
+                discount_percentage,
                 items // new items array to replace existing items
             } = req.body;
 
@@ -298,8 +375,10 @@ class OrdersController {
                 card_network_id = $13,
                 created_by = $14,
                 memo = $15,
-                table_number = $16
-              WHERE id = $17
+                table_number = $16,
+                discount_amount = $17,
+                discount_percentage = $18
+              WHERE id = $19
             `;
 
             await client.query(updateOrderQuery, [
@@ -319,6 +398,8 @@ class OrdersController {
                 created_by,
                 memo || null,
                 table_number || null,
+                discount_amount || 0,
+                discount_percentage || 0,
                 order_id
             ]);
 

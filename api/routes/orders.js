@@ -17,6 +17,10 @@ router.patch('/:id/status', OrdersController.updateStatus);
 // GET /api/orders/next-number?location_id=15&pos_terminal_number=1
 router.get('/next-number', OrdersController.getNextOrderNumber);
 
+// --- NEW ROUTE HERE ---
+// GET /api/orders/z-reading/:pos_terminal_number - Get Z-Reading for a specific POS
+// Must be placed BEFORE /:id to prevent conflict
+router.get('/z-reading/:pos_terminal_number', OrdersController.getZReadingByPOS);
 
 // GET /api/orders/:id - Get order by ID
 router.get('/:id', OrdersController.getOrderById);
