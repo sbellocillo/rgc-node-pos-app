@@ -8,6 +8,9 @@ router.get('/', UserController.getAllUsers);
 // GET /api/users/:id - Get user by ID
 router.get('/:id', UserController.getUserById);
 
+// POST /api/users/login - Login by employee number
+router.post('/login', UserController.loginByEmployeeNum);
+
 // POST /api/users - Create new user
 router.post('/', UserController.createUser);
 

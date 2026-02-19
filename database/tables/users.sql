@@ -41,3 +41,6 @@ ON CONFLICT (username) DO NOTHING;
 
 -- Success message
 SELECT 'Ribshack POS database setup completed successfully!' AS message;
+
+-- For 6 digit pin login
+ALTER TABLE public.users ADD COLUMN employee_num VARCHAR(6) UNIQUE NOT NULL;

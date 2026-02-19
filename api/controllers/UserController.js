@@ -62,7 +62,7 @@ class UserController {
     // Create new user
     static async createUser(req, res) {
         try {
-            const { username, role_id, role_name, location_id, password } = req.body;
+            const { username, role_id, role_name, location_id, password, employee_num } = req.body;
 
             // Create temporary user object for validation
             const tempUser = User.create({ username, role_id, role_name });
@@ -76,13 +76,29 @@ class UserController {
                 });
             }
 
+            // Check if employee_num already exists
+            if (employee_num) {
+                const existingEmployee = await pool.query(
+                    'SELECT id FROM users WHERE employee_num = $1',
+                    [employee_num]
+                );
+
+                if (existingEmployee.rows.length > 0) {
+                    return res.status(409).json({
+                        success: false,
+                        message: `Employee number '${employee_num}' is already in use`
+                    });
+                }
+            }
+
             // Insert into database
             const result = await pool.query(
-                'INSERT INTO users (username, role_id, role_name, location_id, password, created_at) VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING *',
-                [username, role_id, role_name, location_id || null, password]
+                `INSERT INTO users (username, role_id, role_name, location_id, password, created_at, employee_num) VALUES ($1, $2, $3, $4, crypt($5, gen_salt(\'bf\')), NOW(), $6) 
+                 RETURNING id, username, role_id, role_name, location_id, created_at, employee_num`,
+                [username, role_id, role_name, location_id || null, password, employee_num]
             );
 
-            const user = User.create(result.rows[0]);
+            const user = result.rows[0];
 
             res.status(201).json({
                 success: true,
@@ -176,6 +192,57 @@ class UserController {
             res.status(500).json({
                 success: false,
                 message: 'Error deleting user',
+                error: error.message
+            });
+        }
+    }
+
+    // Login by employee number
+    static async loginByEmployeeNum(req, res) {
+        try {
+            const { employee_num } = req.body;
+
+            if (!employee_num) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Employee number is required'
+                });
+            }
+
+            const result = await pool.query(
+                `SELECT u.id, u.username, u.role_id, u.role_name, u.location_id, u.employee_num, u.is_active,
+                        l.name AS location_name
+                 FROM users u
+                 LEFT JOIN location l ON u.location_id = l.id
+                 WHERE u.employee_num = $1`,
+                [employee_num]
+            );
+
+            if (result.rows.length === 0) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Invalid employee number'
+                });
+            }
+
+            const user = result.rows[0];
+
+            if (!user.is_active) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Account is inactive'
+                });
+            }
+
+            res.status(200).json({
+                success: true,
+                message: 'Login successful',
+                data: user
+            });
+        } catch (error) {
+            res.status(500).json({
+                success: false,
+                message: 'Login failed',
                 error: error.message
             });
         }
